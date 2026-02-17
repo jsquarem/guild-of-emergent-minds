@@ -9,6 +9,7 @@ Thumbs.db
 desktop.ini
 
 # Editor
+.vscode/
 *.swp
 *.swo
 *~

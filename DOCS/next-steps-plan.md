@@ -1,10 +1,10 @@
 # Next Steps Plan
 
-**Status:** Phase 1–2 done. Phase 3 implemented: roles (Tank/DPS/Healer; only Tank+DPS spawned for now), state machine (Idle/Moving/Attacking), combat, 2 heroes, simple enemies (patrol/aggro), hybrid dungeon doc.
+**Status:** Phase 1–3 done. Phase 4 implemented: Boss with phases (Normal/Enraged), telegraph system, fire-on-ground + line attack + target swap mechanics, defeat/victory screen with Retry and Reset Progress, full game reset (clean wipe), death-per-mechanic persistence via EventBus.
 
 ---
 
-## Immediate next: Phase 3 — Roles, state machines, combat (implemented)
+## Phase 3 — Roles, state machines, combat (done)
 
 **Goal:** 2–3 heroes with distinct roles, simple enemy AI, state-driven behavior. Target run length 5–10 minutes.
 
@@ -20,7 +20,7 @@
 
 ---
 
-## After Phase 3: Phase 4 — Boss and mechanic recognition
+## Phase 4 — Boss and mechanic recognition (done)
 
 | Step | Task |
 |------|------|
@@ -34,7 +34,7 @@
 
 ---
 
-## Then: Phase 5 — Base / guild layer
+## Immediate next: Phase 5 — Base / guild layer
 
 | Step | Task |
 |------|------|
@@ -55,7 +55,7 @@
 - Full gear system + consumables (one type + AI use rule first)
 - Art pass (replace placeholders)
 - Balancing: wipe rates, unlock pacing, 5–10 min runs, medium difficulty
-- Smarter enemy AI (abilities, tactics)
+- Smarter enemy AI (abilities, tactics); **aggro/threat tables** (threat per hero per enemy, taunt, target selection by highest threat)
 - UI polish, accessibility, sound expansion
 
 ---

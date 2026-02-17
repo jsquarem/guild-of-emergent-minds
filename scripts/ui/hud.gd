@@ -3,6 +3,10 @@ extends Control
 ## Heads-up display: party panel (heroes + stats), enemies window (stats), speed, notifications.
 ## Layout is in scenes/ui/hud.tscn so you can edit positions and labels in the Godot editor.
 
+signal restart_requested()
+signal main_menu_requested()
+signal reset_progression_requested()
+
 @onready var party_panel: PanelContainer = $PartyPanel
 @onready var party_list: VBoxContainer = $PartyPanel/PartyMargin/PartyVBox/PartyList
 @onready var run_label: Label = $PartyPanel/PartyMargin/PartyVBox/RunRow/RunLabel
@@ -19,6 +23,7 @@ const ROW_SPACING: int = 4
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_apply_panel_styles()
+	_build_top_buttons()
 	_connect_signals()
 
 
@@ -42,6 +47,78 @@ func _panel_style() -> StyleBoxFlat:
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(4)
 	return style
+
+
+func _build_top_buttons() -> void:
+	var btn_row := HBoxContainer.new()
+	btn_row.position = Vector2(16, 368)
+	btn_row.add_theme_constant_override("separation", 8)
+
+	var restart_btn := Button.new()
+	restart_btn.text = "Restart"
+	restart_btn.custom_minimum_size = Vector2(100, 32)
+	restart_btn.pressed.connect(_on_restart_pressed)
+	_style_button(restart_btn, Color(0.2, 0.65, 0.35))
+	btn_row.add_child(restart_btn)
+
+	var main_menu_btn := Button.new()
+	main_menu_btn.text = "Main Menu"
+	main_menu_btn.custom_minimum_size = Vector2(100, 32)
+	main_menu_btn.pressed.connect(_on_main_menu_pressed)
+	_style_button(main_menu_btn, Color(0.45, 0.45, 0.6))
+	btn_row.add_child(main_menu_btn)
+
+	var reset_btn := Button.new()
+	reset_btn.text = "Reset Progress"
+	reset_btn.custom_minimum_size = Vector2(100, 32)
+	reset_btn.pressed.connect(_on_reset_progression_pressed)
+	_style_button(reset_btn, Color(0.8, 0.3, 0.2))
+	btn_row.add_child(reset_btn)
+
+	var auto_check := CheckButton.new()
+	auto_check.text = " Auto"
+	auto_check.button_pressed = GameManager.auto_restart_on_complete
+	auto_check.toggled.connect(_on_auto_toggled)
+	auto_check.tooltip_text = "Auto-restart map on completion"
+	auto_check.custom_minimum_size = Vector2(60, 32)
+	_style_check_button(auto_check)
+	btn_row.add_child(auto_check)
+
+	add_child(btn_row)
+
+
+func _style_button(btn: Button, color: Color) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color.darkened(0.3)
+	style.border_color = color
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(6)
+	btn.add_theme_stylebox_override("normal", style)
+	var hover := style.duplicate() as StyleBoxFlat
+	hover.bg_color = color.darkened(0.1)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_font_size_override("font_size", 14)
+
+
+func _on_restart_pressed() -> void:
+	restart_requested.emit()
+
+
+func _on_main_menu_pressed() -> void:
+	main_menu_requested.emit()
+
+
+func _on_reset_progression_pressed() -> void:
+	reset_progression_requested.emit()
+
+
+func _on_auto_toggled(pressed: bool) -> void:
+	GameManager.auto_restart_on_complete = pressed
+
+
+func _style_check_button(btn: CheckButton) -> void:
+	btn.add_theme_font_size_override("font_size", 14)
 
 
 # -- Signal handlers ----------------------------------------------------------
@@ -107,10 +184,10 @@ func _update_enemies_panel() -> void:
 	_clear_children(enemies_list)
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	for node in enemies:
-		var enemy := node as Enemy
-		if not enemy:
-			continue
-		enemies_list.add_child(_make_enemy_block(enemy))
+		if node is Boss:
+			enemies_list.add_child(_make_boss_block(node as Boss))
+		elif node is Enemy:
+			enemies_list.add_child(_make_enemy_block(node as Enemy))
 	if enemies_list.get_child_count() == 0:
 		enemies_list.add_child(_make_label("(none)", 13))
 
@@ -127,15 +204,35 @@ func _make_enemy_block(enemy: Enemy) -> Control:
 	return block
 
 
+func _make_boss_block(boss: Boss) -> Control:
+	var block := VBoxContainer.new()
+	block.add_theme_constant_override("separation", 2)
+	var phase_str: String = "ENRAGED" if boss.phase == Boss.Phase.ENRAGED else "Normal"
+	var header := _make_label("BOSS [%s]" % phase_str, 15)
+	header.add_theme_color_override("font_color", Color(1.0, 0.3, 0.5))
+	block.add_child(header)
+	block.add_child(_make_label("  HP: %d / %d" % [ceili(boss.hp), int(boss.max_hp)], 13))
+	var state_str: String = "Idle"
+	match boss.state:
+		Boss.BossState.TELEGRAPH:
+			state_str = "Telegraph: %s" % boss._current_ability
+		Boss.BossState.EXECUTE:
+			state_str = "Casting"
+		Boss.BossState.MELEE:
+			state_str = "Melee"
+	block.add_child(_make_label("  State: %s" % state_str, 12))
+	return block
+
+
 func _clear_children(parent: Control) -> void:
 	for c in parent.get_children():
 		c.queue_free()
 
 
-func _make_label(text: String, size: int) -> Label:
+func _make_label(text: String, font_size: int) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_font_size_override("font_size", font_size)
 	return lbl
 
 

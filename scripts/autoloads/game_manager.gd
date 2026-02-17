@@ -6,6 +6,8 @@ enum GameState { IDLE, RUNNING, COMPLETED, FAILED }
 var current_state: GameState = GameState.IDLE
 var game_speed: float = 1.0
 var run_count: int = 0
+## When true, completing a run automatically restarts the map.
+var auto_restart_on_complete: bool = true
 
 const SPEED_OPTIONS: Array[float] = [1.0, 2.0, 3.0, 4.0, 5.0]
 var speed_index: int = 0
@@ -14,6 +16,7 @@ var speed_index: int = 0
 func _ready() -> void:
 	var data := SaveManager.load_data()
 	run_count = data.get("run_count", 0)
+	EventBus.game_reset.connect(_on_game_reset)
 	_setup_input_actions()
 
 
@@ -63,6 +66,12 @@ func reset_state() -> void:
 	current_state = GameState.IDLE
 
 
+func _on_game_reset() -> void:
+	var data := SaveManager.load_data()
+	run_count = data.get("run_count", 0)
+	current_state = GameState.IDLE
+
+
 func _persist_run_count() -> void:
 	SaveManager.save_data({"run_count": run_count})
 
@@ -74,7 +83,7 @@ func _setup_input_actions() -> void:
 		if not InputMap.has_action(action_name):
 			InputMap.add_action(action_name)
 			var key := InputEventKey.new()
-			key.physical_keycode = KEY_1 + i
+			key.physical_keycode = (KEY_1 + i) as Key
 			InputMap.action_add_event(action_name, key)
 
 	# Speed up (+, gamepad RB)
