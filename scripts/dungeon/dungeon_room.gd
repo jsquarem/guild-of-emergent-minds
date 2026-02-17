@@ -1,20 +1,27 @@
 class_name DungeonRoom
 extends Node2D
 ## A single dungeon room. Creates floor, walls, goal zone, heroes and enemies.
-## Fire hazard is available via _create_fire_hazard() but not used in this scene.
+## Set is_boss_room = true before adding to tree to spawn a Boss instead of regular enemies.
 
 @export var room_size: Vector2 = Vector2(480, 320)
+@export var is_boss_room: bool = true
 
 var hero_instances: Array[Hero] = []
 var goal_zone: Area2D
+var boss_instance: Boss = null
 var _hero_died_count: int = 0
+var _enemy_died_count: int = 0
+var _total_enemies: int = 0
 
 
 func _ready() -> void:
 	_create_walls()
 	_create_goal_zone()
 	_spawn_heroes()
-	_spawn_enemies()
+	if is_boss_room:
+		_spawn_boss()
+	else:
+		_spawn_enemies()
 	GameManager.start_run()
 
 
@@ -107,6 +114,23 @@ func _spawn_heroes() -> void:
 		hero_instances.append(h)
 
 
+func _spawn_boss() -> void:
+	boss_instance = Boss.new()
+	boss_instance.name = "Boss"
+	boss_instance.position = Vector2(room_size.x / 4.0, 0.0)
+	boss_instance.set_room(self)
+	add_child(boss_instance)
+	_total_enemies = 1
+
+	var col := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 16.0
+	col.shape = circle
+	boss_instance.add_child(col)
+
+	boss_instance.died.connect(_on_enemy_died)
+
+
 func _spawn_enemies() -> void:
 	var e1 := Enemy.new()
 	e1.name = "Enemy1"
@@ -117,6 +141,7 @@ func _spawn_enemies() -> void:
 	e1.patrol_radius = 0.0
 	add_child(e1)
 	_add_enemy_collision(e1)
+	e1.died.connect(_on_enemy_died)
 
 	var e2 := Enemy.new()
 	e2.name = "Enemy2"
@@ -125,6 +150,9 @@ func _spawn_enemies() -> void:
 	e2.patrol_radius = 40.0
 	add_child(e2)
 	_add_enemy_collision(e2)
+	e2.died.connect(_on_enemy_died)
+
+	_total_enemies = 2
 
 
 func _add_enemy_collision(enemy: Enemy) -> void:
@@ -146,6 +174,12 @@ func _on_hero_died(_cause: String) -> void:
 	_hero_died_count += 1
 	if _hero_died_count >= hero_instances.size():
 		GameManager.fail_run()
+
+
+func _on_enemy_died(_cause: String) -> void:
+	_enemy_died_count += 1
+	if _enemy_died_count >= _total_enemies:
+		GameManager.complete_run()
 
 
 # -- Drawing (walls + goal visual) -------------------------------------------
