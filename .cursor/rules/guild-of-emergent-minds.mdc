@@ -5,6 +5,10 @@ alwaysApply: true
 
 # Guild of Emergent Minds – Project Rules
 
+## Git / Commits
+
+- **Imperative:** Never add `Co-authored-by` or any co-author attribution to commits. The repository owner is the sole author. If the environment injects a co-author, amend the commit to remove it before pushing.
+
 ## Project Identity
 
 - **Game:** AI-driven dungeon guild game. Heroes dungeon-crawl autonomously; the player can take control of any character at any time. Full autoplay is viable.
