@@ -15,7 +15,7 @@ alwaysApply: true
 
 ### 1. Autonomous Dungeon Crawling
 
-- Heroes have defined roles (Tank, Enchanter, DPS, etc.) and operate via behavior trees / state machines. They improve over time and learn encounter mechanics.
+- Heroes have defined roles (Tank, DPS, Healer, etc.) and operate via behavior trees / state machines. They improve over time and learn encounter mechanics.
 - Player can let heroes autoplay, intervene at any time, discover mechanics manually, and teach the AI through direct gameplay.
 
 ### 2. AI Learning & Behavioral Unlocks
@@ -108,6 +108,13 @@ alwaysApply: true
 - Use `assert()` for development-time checks.
 - Log errors appropriately in production builds.
 - Handle network errors gracefully in multiplayer.
+
+## Git Workflow
+
+- Always commit and push the current feature branch before starting work on a new feature or phase.
+- Use feature branches: create a new branch (e.g. `phase-4-boss-mechanics`) for each phase or major feature.
+- Commit messages follow conventional format: `type(scope): description`.
+- Do not leave uncommitted work when switching context; if work is incomplete, commit with a `wip` prefix or stash.
 
 ## TileMap Implementation
 

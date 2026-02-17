@@ -3,7 +3,7 @@ extends Resource
 ## Defines a hero role: base stats, preferred range, and ability set.
 ## Used by Hero and HeroBrain for role-driven behavior and combat.
 
-enum RoleType { TANK, DPS, ENCHANTER }
+enum RoleType { TANK, DPS, HEALER }
 
 @export var role_type: RoleType = RoleType.DPS
 @export var display_name: String = ""
@@ -56,10 +56,10 @@ static func get_default_dps() -> HeroRole:
 	return r
 
 
-static func get_default_enchanter() -> HeroRole:
+static func get_default_healer() -> HeroRole:
 	var r := HeroRole.new()
-	r.role_type = RoleType.ENCHANTER
-	r.display_name = "Enchanter"
+	r.role_type = RoleType.HEALER
+	r.display_name = "Healer"
 	r.max_hp = 70.0
 	r.move_speed = 75.0
 	r.armor = 0.0

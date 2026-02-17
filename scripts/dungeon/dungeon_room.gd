@@ -1,7 +1,7 @@
 class_name DungeonRoom
 extends Node2D
-## A single dungeon room. Creates floor, walls, fire hazard, goal zone, and
-## spawns a hero. All geometry is built programmatically (placeholder shapes).
+## A single dungeon room. Creates floor, walls, goal zone, heroes and enemies.
+## Fire hazard is available via _create_fire_hazard() but not used in this scene.
 
 @export var room_size: Vector2 = Vector2(480, 320)
 
@@ -13,7 +13,6 @@ var _hero_died_count: int = 0
 func _ready() -> void:
 	_create_walls()
 	_create_goal_zone()
-	_create_fire_hazard()
 	_spawn_heroes()
 	_spawn_enemies()
 	GameManager.start_run()
@@ -64,6 +63,7 @@ func _create_goal_zone() -> void:
 
 
 func _create_fire_hazard() -> void:
+	## Call from _ready() when this room should include fire. Not called in this scene.
 	var fire := FireHazard.new()
 	fire.name = "FireHazard"
 	fire.position = Vector2.ZERO
@@ -82,7 +82,7 @@ func _spawn_heroes() -> void:
 	var roles: Array[HeroRole] = [
 		HeroRole.get_default_tank(),
 		HeroRole.get_default_dps(),
-		HeroRole.get_default_enchanter()
+		HeroRole.get_default_healer()
 	]
 	var x_offsets: Array[float] = [-50.0, 0.0, 50.0]
 	for i in range(roles.size()):

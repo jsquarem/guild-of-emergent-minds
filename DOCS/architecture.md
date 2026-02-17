@@ -22,7 +22,7 @@
 
 ## Role System (Phase 3+)
 
-- Roles defined as data (Resource or enum): Tank, DPS, Enchanter.
+- Roles defined as data (Resource or enum): Tank, DPS, Healer.
 - Each role has base stats, preferred range, and ability set.
 - State machine (Idle, Moving, Attacking, UsingAbility, Fleeing) wraps the BT.
 

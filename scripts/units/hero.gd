@@ -116,7 +116,7 @@ func _get_body_color() -> Color:
 				return Color(0.5, 0.35, 0.2)
 			HeroRole.RoleType.DPS:
 				return Color(0.9, 0.25, 0.2)
-			HeroRole.RoleType.ENCHANTER:
+			HeroRole.RoleType.HEALER:
 				return Color(0.3, 0.6, 0.9)
 	return Color(0.2, 0.4, 0.9)
 

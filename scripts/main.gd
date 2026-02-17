@@ -33,7 +33,8 @@ func _setup_hud() -> void:
 	canvas.name = "UI"
 	add_child(canvas)
 
-	var hud := HUD.new()
+	var hud_scene: PackedScene = load("res://scenes/ui/hud.tscn") as PackedScene
+	var hud: Control = hud_scene.instantiate()
 	hud.name = "HUD"
 	canvas.add_child(hud)
 

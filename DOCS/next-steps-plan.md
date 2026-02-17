@@ -1,6 +1,6 @@
 # Next Steps Plan
 
-**Status:** Phase 1–2 done. Phase 3 implemented: roles (Tank/DPS/Enchanter), state machine (Idle/Moving/Attacking), combat, 2–3 heroes, simple enemies (patrol/aggro), hybrid dungeon doc.
+**Status:** Phase 1–2 done. Phase 3 implemented: roles (Tank/DPS/Healer; only Tank+DPS spawned for now), state machine (Idle/Moving/Attacking), combat, 2 heroes, simple enemies (patrol/aggro), hybrid dungeon doc.
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Step | Task | Notes |
 |------|------|--------|
-| **3.1** | Role system | Define Tank, DPS, Enchanter as data (Resource or enum): base stats, preferred range, 1–2 abilities each. One unit type per role. |
+| **3.1** | Role system | Define Tank, DPS, Healer as data (Resource or enum): base stats, preferred range, 1–2 abilities each. One unit type per role. |
 | **3.2** | Combat model | Real-time auto-battle; AI picks targets and abilities by role. No player control (post-MVP). |
 | **3.3** | State machine (per unit) | Wrap BT in states: Idle, Moving, Attacking, UsingAbility, Fleeing. Clear transitions for debugging and future “reaction speed.” |
 | **3.4** | Simple encounters | 2–3 enemy types: patrol or aggro on sight, basic attack only. Heroes (AI) clear them. |
