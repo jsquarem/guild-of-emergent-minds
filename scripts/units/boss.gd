@@ -100,9 +100,17 @@ func take_damage(amount: float, source_type: String = "unknown") -> void:
 	if not is_alive:
 		return
 	hp -= amount
+	_spawn_floating_number(amount)
 	if hp <= 0.0:
 		hp = 0.0
 		die(source_type)
+
+
+func _spawn_floating_number(amount: float) -> void:
+	var fn := FloatingNumber.create_damage(amount, global_position)
+	var parent := get_parent()
+	if parent:
+		parent.add_child(fn)
 
 
 func die(cause: String = "unknown") -> void:

@@ -5,6 +5,7 @@ extends CharacterBody2D
 
 signal damaged(amount: float, source_type: String)
 signal died(cause: String)
+signal healed(amount: float)
 
 @export var role: HeroRole
 @export var max_hp: float = 100.0
@@ -19,6 +20,11 @@ var attack_cooldown: float = 1.0
 var attack_power: float = 10.0
 var _attack_timer: float = 0.0
 
+var heal_power: float = 0.0
+var heal_range: float = 0.0
+var heal_cooldown: float = 2.0
+var _heal_timer: float = 0.0
+
 
 func _ready() -> void:
 	if role:
@@ -27,6 +33,9 @@ func _ready() -> void:
 		attack_range = role.attack_range
 		attack_cooldown = role.attack_cooldown
 		attack_power = role.attack_power
+		heal_power = role.heal_power
+		heal_range = role.heal_range
+		heal_cooldown = role.heal_cooldown
 	hp = max_hp
 	add_to_group("heroes")
 
@@ -50,8 +59,9 @@ func take_damage(amount: float, source_type: String = "unknown") -> void:
 	if role:
 		reduced = maxf(0.0, amount - role.armor)
 	hp -= reduced
-	damaged.emit(amount, source_type)
-	EventBus.hero_damaged.emit(self, amount, source_type)
+	damaged.emit(reduced, source_type)
+	EventBus.hero_damaged.emit(self, reduced, source_type)
+	_spawn_floating_number(reduced, false)
 	if hp <= 0.0:
 		hp = 0.0
 		die(source_type)
@@ -66,11 +76,33 @@ func die(cause: String = "unknown") -> void:
 
 
 func heal(amount: float) -> void:
-	hp = minf(hp + amount, max_hp)
+	if not is_alive:
+		return
+	var actual := minf(amount, max_hp - hp)
+	if actual <= 0.0:
+		return
+	hp += actual
+	healed.emit(actual)
+	_spawn_floating_number(actual, true)
+	_spawn_heal_effect()
 
 
 func can_attack() -> bool:
 	return _attack_timer <= 0.0
+
+
+func can_heal() -> bool:
+	return _heal_timer <= 0.0 and heal_power > 0.0
+
+
+func perform_heal(target: Hero) -> bool:
+	if not can_heal() or not target or not target.is_alive:
+		return false
+	if target.hp >= target.max_hp:
+		return false
+	target.heal(heal_power)
+	_heal_timer = heal_cooldown
+	return true
 
 
 func perform_attack(target: Node2D) -> bool:
@@ -86,6 +118,7 @@ func perform_attack(target: Node2D) -> bool:
 func _process(delta: float) -> void:
 	if is_alive:
 		_attack_timer -= delta
+		_heal_timer -= delta
 	queue_redraw()
 
 
@@ -119,6 +152,22 @@ func _get_body_color() -> Color:
 			HeroRole.RoleType.HEALER:
 				return Color(0.3, 0.6, 0.9)
 	return Color(0.2, 0.4, 0.9)
+
+
+func _spawn_floating_number(amount: float, is_heal: bool) -> void:
+	var fn: FloatingNumber
+	if is_heal:
+		fn = FloatingNumber.create_heal(amount, global_position)
+	else:
+		fn = FloatingNumber.create_damage(amount, global_position)
+	var parent := get_parent()
+	if parent:
+		parent.add_child(fn)
+
+
+func _spawn_heal_effect() -> void:
+	var effect := HealEffect.new()
+	add_child(effect)
 
 
 func _draw() -> void:
