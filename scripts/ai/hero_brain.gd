@@ -351,8 +351,8 @@ func _apply_direction_dead_zone(desired: Vector2) -> Vector2:
 # -- Separation ----------------------------------------------------------------
 
 func _apply_separation(base_velocity: Vector2) -> Vector2:
-	var len := base_velocity.length()
-	if len < 0.01:
+	var vel_len := base_velocity.length()
+	if vel_len < 0.01:
 		return base_velocity
 	# Only separate from other heroes so we path around allies; don't push away from enemies (caused jitter in boss room)
 	var separation := Vector2.ZERO
@@ -370,7 +370,7 @@ func _apply_separation(base_velocity: Vector2) -> Vector2:
 	if separation.length_squared() < 0.01:
 		return base_velocity
 	var dir := (base_velocity.normalized() + separation.normalized() * SEPARATION_STRENGTH).normalized()
-	return dir * len
+	return dir * vel_len
 
 
 # -- Avoidance ----------------------------------------------------------------

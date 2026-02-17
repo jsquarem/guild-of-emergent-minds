@@ -229,10 +229,10 @@ func _clear_children(parent: Control) -> void:
 		c.queue_free()
 
 
-func _make_label(text: String, size: int) -> Label:
+func _make_label(text: String, font_size: int) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_font_size_override("font_size", font_size)
 	return lbl
 
 

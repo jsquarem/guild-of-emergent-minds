@@ -83,7 +83,7 @@ func _setup_input_actions() -> void:
 		if not InputMap.has_action(action_name):
 			InputMap.add_action(action_name)
 			var key := InputEventKey.new()
-			key.physical_keycode = KEY_1 + i
+			key.physical_keycode = (KEY_1 + i) as Key
 			InputMap.action_add_event(action_name, key)
 
 	# Speed up (+, gamepad RB)
