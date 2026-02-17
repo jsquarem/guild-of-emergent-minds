@@ -107,10 +107,10 @@ func _update_enemies_panel() -> void:
 	_clear_children(enemies_list)
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	for node in enemies:
-		var enemy := node as Enemy
-		if not enemy:
-			continue
-		enemies_list.add_child(_make_enemy_block(enemy))
+		if node is Boss:
+			enemies_list.add_child(_make_boss_block(node as Boss))
+		elif node is Enemy:
+			enemies_list.add_child(_make_enemy_block(node as Enemy))
 	if enemies_list.get_child_count() == 0:
 		enemies_list.add_child(_make_label("(none)", 13))
 
@@ -124,6 +124,26 @@ func _make_enemy_block(enemy: Enemy) -> Control:
 	block.add_child(_make_label("  HP: %d / %d" % [ceili(enemy.hp), int(enemy.max_hp)], 12))
 	block.add_child(_make_label("  Atk: %.0f  Range: %.0f" % [enemy.attack_damage, enemy.attack_range], 12))
 	block.add_child(_make_label("  Aggro: %.0f  Spd: %.0f" % [enemy.aggro_range, enemy.move_speed], 12))
+	return block
+
+
+func _make_boss_block(boss: Boss) -> Control:
+	var block := VBoxContainer.new()
+	block.add_theme_constant_override("separation", 2)
+	var phase_str: String = "ENRAGED" if boss.phase == Boss.Phase.ENRAGED else "Normal"
+	var header := _make_label("BOSS [%s]" % phase_str, 15)
+	header.add_theme_color_override("font_color", Color(1.0, 0.3, 0.5))
+	block.add_child(header)
+	block.add_child(_make_label("  HP: %d / %d" % [ceili(boss.hp), int(boss.max_hp)], 13))
+	var state_str: String = "Idle"
+	match boss.state:
+		Boss.BossState.TELEGRAPH:
+			state_str = "Telegraph: %s" % boss._current_ability
+		Boss.BossState.EXECUTE:
+			state_str = "Casting"
+		Boss.BossState.MELEE:
+			state_str = "Melee"
+	block.add_child(_make_label("  State: %s" % state_str, 12))
 	return block
 
 

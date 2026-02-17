@@ -1,21 +1,22 @@
 extends Node2D
-## Entry-point scene. Creates dungeon room, camera, and HUD.
-## Handles run restart on death / completion.
+## Entry-point scene. Creates dungeon room, camera, HUD, and run-end screen.
+## Handles run restart via defeat/victory screen or manual R key.
 
 var dungeon_room: DungeonRoom
 var camera: Camera2D
+var run_end_screen: RunEndScreen
 var _restarting: bool = false
 
 
 func _ready() -> void:
 	_setup_camera()
-	_setup_hud()
+	_setup_ui()
 	_start_new_room()
-	EventBus.run_ended.connect(_on_run_ended)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart_run") and not _restarting:
+		run_end_screen.hide_screen()
 		_restart_room()
 
 
@@ -28,7 +29,7 @@ func _setup_camera() -> void:
 	add_child(camera)
 
 
-func _setup_hud() -> void:
+func _setup_ui() -> void:
 	var canvas := CanvasLayer.new()
 	canvas.name = "UI"
 	add_child(canvas)
@@ -37,6 +38,13 @@ func _setup_hud() -> void:
 	var hud: Control = hud_scene.instantiate()
 	hud.name = "HUD"
 	canvas.add_child(hud)
+
+	run_end_screen = RunEndScreen.new()
+	run_end_screen.name = "RunEndScreen"
+	run_end_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	canvas.add_child(run_end_screen)
+	run_end_screen.retry_requested.connect(_on_retry_requested)
+	run_end_screen.reset_requested.connect(_on_reset_requested)
 
 
 # -- Room lifecycle -----------------------------------------------------------
@@ -53,16 +61,18 @@ func _restart_room() -> void:
 	if dungeon_room:
 		dungeon_room.queue_free()
 		dungeon_room = null
-	# Wait one frame for queue_free, then create new room
 	await get_tree().process_frame
 	_start_new_room()
 	_restarting = false
 
 
-func _on_run_ended(_success: bool) -> void:
-	if _restarting:
-		return
-	# Brief real-time pause before auto-restart (ignores time scale)
-	var timer := get_tree().create_timer(2.5, true, false, true)
-	await timer.timeout
-	_restart_room()
+# -- Signal handlers ----------------------------------------------------------
+
+func _on_retry_requested() -> void:
+	if not _restarting:
+		_restart_room()
+
+
+func _on_reset_requested() -> void:
+	if not _restarting:
+		_restart_room()

@@ -14,6 +14,7 @@ var speed_index: int = 0
 func _ready() -> void:
 	var data := SaveManager.load_data()
 	run_count = data.get("run_count", 0)
+	EventBus.game_reset.connect(_on_game_reset)
 	_setup_input_actions()
 
 
@@ -60,6 +61,12 @@ func fail_run() -> void:
 
 
 func reset_state() -> void:
+	current_state = GameState.IDLE
+
+
+func _on_game_reset() -> void:
+	var data := SaveManager.load_data()
+	run_count = data.get("run_count", 0)
 	current_state = GameState.IDLE
 
 

@@ -11,6 +11,7 @@ const UNLOCK_THRESHOLDS: Dictionary = {
 
 func _ready() -> void:
 	EventBus.hero_died.connect(_on_hero_died)
+	EventBus.game_reset.connect(_on_game_reset)
 	var data := SaveManager.load_data()
 	_load_from_save(data)
 
@@ -51,6 +52,10 @@ func _persist() -> void:
 			"death_counts": death_counts.duplicate(),
 		}
 	})
+
+
+func _on_game_reset() -> void:
+	_load_from_save(SaveManager.load_data())
 
 
 func _load_from_save(data: Dictionary) -> void:

@@ -19,6 +19,17 @@ func load_data() -> Dictionary:
 	return _cache
 
 
+func reset_to_default() -> void:
+	_cache = {
+		"run_count": 0,
+		"unlock_data": {
+			"unlocked_behaviors": {},
+			"death_counts": {},
+		}
+	}
+	_write_to_disk(_cache)
+
+
 func _read_from_disk() -> Dictionary:
 	if not FileAccess.file_exists(SAVE_PATH):
 		return {}
