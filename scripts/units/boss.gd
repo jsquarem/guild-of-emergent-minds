@@ -22,9 +22,8 @@ enum BossState { IDLE, MELEE, TELEGRAPH, EXECUTE }
 @export var enrage_hp_ratio: float = 0.5
 
 ## Mechanic tuning
-@export var fire_damage_per_second: float = 40.0
-@export var fire_size: Vector2 = Vector2(100, 80)
-@export var fire_duration: float = 5.0
+@export var fire_damage: float = 40.0
+@export var fire_radius: float = 50.0
 @export var line_attack_damage: float = 35.0
 @export var line_attack_width: float = 30.0
 @export var line_attack_length: float = 200.0
@@ -232,7 +231,7 @@ func _build_telegraph_data() -> Dictionary:
 	}
 	match _current_ability:
 		"fire":
-			data["extent"] = fire_size
+			data["radius"] = fire_radius
 		"line_attack":
 			data["direction"] = _ability_direction
 			data["extent"] = Vector2(line_attack_length, line_attack_width)
@@ -262,26 +261,19 @@ func _execute_ability() -> void:
 
 
 func _execute_fire() -> void:
+	var heroes := get_tree().get_nodes_in_group("heroes")
+	for node in heroes:
+		var hero := node as Hero
+		if not hero or not hero.is_alive:
+			continue
+		if hero.global_position.distance_to(_ability_target_pos) <= fire_radius:
+			hero.take_damage(fire_damage, "fire")
+	# Spawn visual effect
 	var parent: Node2D = _room_node if _room_node else get_parent()
-	var fire := FireHazard.new()
-	fire.name = "BossFire"
-	fire.position = _ability_target_pos
-	fire.hazard_size = fire_size
-	fire.damage_per_second = fire_damage_per_second
-	parent.add_child(fire)
-
-	var col := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = fire_size
-	col.shape = rect
-	fire.add_child(col)
-
-	# Auto-remove fire after duration
-	var timer := fire.get_tree().create_timer(fire_duration, false)
-	timer.timeout.connect(func() -> void:
-		if is_instance_valid(fire):
-			fire.queue_free()
-	)
+	var effect := FireZoneEffect.new()
+	effect.position = _ability_target_pos
+	effect.radius = fire_radius
+	parent.add_child(effect)
 
 
 func _execute_line_attack() -> void:
@@ -351,9 +343,8 @@ func _draw_telegraph() -> void:
 	match _current_ability:
 		"fire":
 			var local_pos: Vector2 = _ability_target_pos - global_position
-			var rect := Rect2(local_pos - fire_size / 2.0, fire_size)
-			draw_rect(rect, Color(1.0, 0.5, 0.0, alpha))
-			draw_rect(rect, Color(1.0, 0.7, 0.0, alpha + 0.2), false, 2.0)
+			draw_circle(local_pos, fire_radius, Color(1.0, 0.5, 0.0, alpha))
+			draw_arc(local_pos, fire_radius, 0.0, TAU, 32, Color(1.0, 0.7, 0.0, alpha + 0.2), 2.0)
 		"line_attack":
 			var start_local := Vector2.ZERO
 			var end_local := _ability_direction * line_attack_length
