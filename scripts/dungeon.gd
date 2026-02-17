@@ -81,14 +81,12 @@ func _setup_ui() -> void:
 	canvas.add_child(hud)
 	hud.restart_requested.connect(_on_retry_requested)
 	hud.main_menu_requested.connect(_on_main_menu_requested)
-	hud.reset_progression_requested.connect(_on_reset_progression_requested)
 
 	run_end_screen = RunEndScreen.new()
 	run_end_screen.name = "RunEndScreen"
 	run_end_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
 	canvas.add_child(run_end_screen)
 	run_end_screen.retry_requested.connect(_on_retry_requested)
-	run_end_screen.reset_requested.connect(_on_reset_requested)
 
 
 # -- World (one flowing dungeon) -----------------------------------------------
@@ -224,20 +222,24 @@ func _restart_dungeon() -> void:
 		hero_instances.clear()
 	await get_tree().process_frame
 	_build_world()
+	GameManager.start_run()
 	_restarting = false
 
 
 # -- Signal handlers ----------------------------------------------------------
 
 func _on_run_ended(success: bool) -> void:
-	if not success or _restarting:
+	if _restarting:
+		return
+	if not success:
 		return
 	for h in hero_instances:
 		if is_instance_valid(h):
 			h.velocity = Vector2.ZERO
-	run_end_screen.hide_screen()
-	# Always restart after killing final boss; defer so it runs after current frame
-	call_deferred("_restart_dungeon")
+	if GameManager.auto_restart_on_complete:
+		_restart_dungeon()
+	else:
+		run_end_screen.show_victory()
 
 
 func _on_room_cleared(_room_idx: int) -> void:
@@ -254,15 +256,4 @@ func _on_retry_requested() -> void:
 
 func _on_main_menu_requested() -> void:
 	if not _restarting:
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-
-
-func _on_reset_progression_requested() -> void:
-	if not _restarting:
-		run_end_screen.show_reset_progression_confirm()
-
-
-func _on_reset_requested() -> void:
-	if not _restarting:
-		run_end_screen.hide_screen()
-		_restart_dungeon()
+		get_tree().change_scene_to_file("res://scenes/base.tscn")

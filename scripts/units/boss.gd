@@ -128,23 +128,82 @@ func _check_phase_transition() -> void:
 		_ability_timer = minf(_ability_timer, 2.0)
 
 
+# -- Heroes in room (only target heroes in the same room as the boss) ----------
+
+func _get_heroes_in_room() -> Array[Hero]:
+	var result: Array[Hero] = []
+	var room := _room_node as DungeonRoom
+	if not room:
+		# Fallback: all alive heroes (e.g. if room not set)
+		for node in get_tree().get_nodes_in_group("heroes"):
+			var h := node as Hero
+			if h and h.is_alive:
+				result.append(h)
+		return result
+	var half: Vector2 = room.room_size / 2.0
+	var min_p: Vector2 = room.global_position - half
+	var max_p: Vector2 = room.global_position + half
+	for node in get_tree().get_nodes_in_group("heroes"):
+		var hero := node as Hero
+		if not hero or not hero.is_alive:
+			continue
+		var p: Vector2 = hero.global_position
+		if p.x >= min_p.x and p.x <= max_p.x and p.y >= min_p.y and p.y <= max_p.y:
+			result.append(hero)
+	return result
+
+
+# -- Ability target selection (ranged = outside melee, melee = in melee) -------
+
+## Prefer heroes outside melee range (for telegraphed abilities). Fallback: any hero in room.
+func _get_ability_target_ranged() -> Hero:
+	var in_room: Array[Hero] = _get_heroes_in_room()
+	if in_room.is_empty():
+		return null
+	var ranged: Array[Hero] = []
+	for h in in_room:
+		if global_position.distance_to(h.global_position) > attack_range:
+			ranged.append(h)
+	if not ranged.is_empty():
+		return ranged[randi() % ranged.size()]
+	return in_room[randi() % in_room.size()]
+
+
+## Prefer heroes in melee range (for future melee abilities). Fallback: any hero in room.
+func _get_ability_target_melee() -> Hero:
+	var in_room: Array[Hero] = _get_heroes_in_room()
+	if in_room.is_empty():
+		return null
+	var melee: Array[Hero] = []
+	for h in in_room:
+		if global_position.distance_to(h.global_position) <= attack_range:
+			melee.append(h)
+	if not melee.is_empty():
+		return melee[randi() % melee.size()]
+	return in_room[randi() % in_room.size()]
+
+
 # -- Aggro --------------------------------------------------------------------
 
 func _update_aggro() -> void:
 	if _aggro_target:
 		if not is_instance_valid(_aggro_target) or not (_aggro_target is Hero and (_aggro_target as Hero).is_alive):
 			_aggro_target = null
+			return
+		# Drop aggro if target left this room
+		var in_room: Array[Hero] = _get_heroes_in_room()
+		if _aggro_target not in in_room:
+			_aggro_target = null
+			return
 		return
-	var heroes := get_tree().get_nodes_in_group("heroes")
+	var heroes: Array[Hero] = _get_heroes_in_room()
 	var best: Node2D = null
 	var best_dist: float = 1e6
-	for node in heroes:
-		var hero := node as Hero
-		if hero and hero.is_alive:
-			var d := global_position.distance_to(hero.global_position)
-			if d <= aggro_range and d < best_dist:
-				best_dist = d
-				best = hero
+	for hero in heroes:
+		var d := global_position.distance_to(hero.global_position)
+		if d <= aggro_range and d < best_dist:
+			best_dist = d
+			best = hero
 	_aggro_target = best
 
 
@@ -188,39 +247,44 @@ func _start_telegraph() -> void:
 
 
 func _prepare_fire_telegraph() -> void:
-	if _aggro_target and is_instance_valid(_aggro_target):
-		_ability_target_pos = _aggro_target.global_position
+	var target: Hero = _get_ability_target_ranged()
+	if target:
+		_ability_target_pos = target.global_position
 	else:
 		_ability_target_pos = global_position + Vector2(randf_range(-60, 60), randf_range(-60, 60))
 
 
 func _prepare_line_telegraph() -> void:
-	if _aggro_target and is_instance_valid(_aggro_target):
-		_ability_direction = (_aggro_target.global_position - global_position).normalized()
+	var target: Hero = _get_ability_target_ranged()
+	if target:
+		_ability_direction = (target.global_position - global_position).normalized()
 	else:
 		_ability_direction = Vector2.RIGHT.rotated(randf() * TAU)
 	_ability_target_pos = global_position
 
 
 func _prepare_target_swap_telegraph() -> void:
-	var heroes := get_tree().get_nodes_in_group("heroes")
-	var alive_heroes: Array[Hero] = []
-	for node in heroes:
-		var h := node as Hero
-		if h and h.is_alive:
-			alive_heroes.append(h)
+	var alive_heroes: Array[Hero] = _get_heroes_in_room()
 	if alive_heroes.is_empty():
 		_current_ability = "fire"
 		_prepare_fire_telegraph()
 		return
-	# Pick a hero that is NOT the current aggro target if possible
-	var candidates: Array[Hero] = []
+	# Prefer a hero outside melee range (ranged target); if none, any hero. Prefer not current aggro.
+	var ranged: Array[Hero] = []
+	var melee: Array[Hero] = []
 	for h in alive_heroes:
+		if global_position.distance_to(h.global_position) > attack_range:
+			ranged.append(h)
+		else:
+			melee.append(h)
+	var candidates: Array[Hero] = ranged if not ranged.is_empty() else melee
+	var not_aggro: Array[Hero] = []
+	for h in candidates:
 		if h != _aggro_target:
-			candidates.append(h)
-	if candidates.is_empty():
-		candidates = alive_heroes
-	_marked_target = candidates[randi() % candidates.size()]
+			not_aggro.append(h)
+	if not_aggro.is_empty():
+		not_aggro = candidates
+	_marked_target = not_aggro[randi() % not_aggro.size()]
 	_ability_target_pos = _marked_target.global_position
 
 
@@ -261,11 +325,8 @@ func _execute_ability() -> void:
 
 
 func _execute_fire() -> void:
-	var heroes := get_tree().get_nodes_in_group("heroes")
-	for node in heroes:
-		var hero := node as Hero
-		if not hero or not hero.is_alive:
-			continue
+	var heroes: Array[Hero] = _get_heroes_in_room()
+	for hero in heroes:
 		if hero.global_position.distance_to(_ability_target_pos) <= fire_radius:
 			hero.take_damage(fire_damage, "fire")
 	# Spawn visual effect
@@ -280,11 +341,8 @@ func _execute_line_attack() -> void:
 	var start_pos: Vector2 = global_position
 	var end_pos: Vector2 = start_pos + _ability_direction * line_attack_length
 	var half_width: float = line_attack_width / 2.0
-	var heroes := get_tree().get_nodes_in_group("heroes")
-	for node in heroes:
-		var hero := node as Hero
-		if not hero or not hero.is_alive:
-			continue
+	var heroes: Array[Hero] = _get_heroes_in_room()
+	for hero in heroes:
 		var dist := _point_to_segment_distance(hero.global_position, start_pos, end_pos)
 		if dist <= half_width:
 			hero.take_damage(line_attack_damage, "line_attack")

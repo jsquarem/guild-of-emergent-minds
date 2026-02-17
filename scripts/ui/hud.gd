@@ -5,7 +5,6 @@ extends Control
 
 signal restart_requested()
 signal main_menu_requested()
-signal reset_progression_requested()
 
 @onready var party_panel: PanelContainer = $PartyPanel
 @onready var party_list: VBoxContainer = $PartyPanel/PartyMargin/PartyVBox/PartyList
@@ -61,19 +60,12 @@ func _build_top_buttons() -> void:
 	_style_button(restart_btn, Color(0.2, 0.65, 0.35))
 	btn_row.add_child(restart_btn)
 
-	var main_menu_btn := Button.new()
-	main_menu_btn.text = "Main Menu"
-	main_menu_btn.custom_minimum_size = Vector2(100, 32)
-	main_menu_btn.pressed.connect(_on_main_menu_pressed)
-	_style_button(main_menu_btn, Color(0.45, 0.45, 0.6))
-	btn_row.add_child(main_menu_btn)
-
-	var reset_btn := Button.new()
-	reset_btn.text = "Reset Progress"
-	reset_btn.custom_minimum_size = Vector2(100, 32)
-	reset_btn.pressed.connect(_on_reset_progression_pressed)
-	_style_button(reset_btn, Color(0.8, 0.3, 0.2))
-	btn_row.add_child(reset_btn)
+	var back_btn := Button.new()
+	back_btn.text = "Back to Base"
+	back_btn.custom_minimum_size = Vector2(100, 32)
+	back_btn.pressed.connect(_on_main_menu_pressed)
+	_style_button(back_btn, Color(0.45, 0.45, 0.6))
+	btn_row.add_child(back_btn)
 
 	var auto_check := CheckButton.new()
 	auto_check.text = " Auto"
@@ -107,10 +99,6 @@ func _on_restart_pressed() -> void:
 
 func _on_main_menu_pressed() -> void:
 	main_menu_requested.emit()
-
-
-func _on_reset_progression_pressed() -> void:
-	reset_progression_requested.emit()
 
 
 func _on_auto_toggled(pressed: bool) -> void:
