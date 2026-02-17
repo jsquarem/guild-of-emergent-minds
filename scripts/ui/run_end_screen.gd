@@ -1,21 +1,16 @@
 class_name RunEndScreen
 extends Control
 ## Full-screen overlay shown on run end (defeat or victory).
-## Buttons: Retry, Reset Progress. Emits signals for Main to handle.
+## Buttons: Retry, Return to Base.
 
 signal retry_requested()
-signal reset_requested()
 
 var _title_label: Label
 var _message_label: Label
 var _stats_label: Label
 var _btn_row: HBoxContainer
 var _retry_button: Button
-var _reset_button: Button
-var _confirm_container: HBoxContainer
-var _confirm_label: Label
-var _confirm_yes: Button
-var _confirm_no: Button
+var _return_to_base_button: Button
 var _bg: ColorRect
 
 
@@ -91,30 +86,9 @@ func _build_ui() -> void:
 	_retry_button.pressed.connect(_on_retry_pressed)
 	_btn_row.add_child(_retry_button)
 
-	_reset_button = _make_button("Reset Progress", Color(0.8, 0.3, 0.2))
-	_reset_button.pressed.connect(_on_reset_pressed)
-	_btn_row.add_child(_reset_button)
-
-	# Confirmation row (hidden by default)
-	_confirm_container = HBoxContainer.new()
-	_confirm_container.add_theme_constant_override("separation", 8)
-	_confirm_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	_confirm_container.visible = false
-	vbox.add_child(_confirm_container)
-
-	_confirm_label = Label.new()
-	_confirm_label.text = "Wipe all unlocks and progress?"
-	_confirm_label.add_theme_font_size_override("font_size", 13)
-	_confirm_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))
-	_confirm_container.add_child(_confirm_label)
-
-	_confirm_yes = _make_button("Yes", Color(0.9, 0.2, 0.2))
-	_confirm_yes.pressed.connect(_on_confirm_reset)
-	_confirm_container.add_child(_confirm_yes)
-
-	_confirm_no = _make_button("No", Color(0.5, 0.5, 0.55))
-	_confirm_no.pressed.connect(_on_cancel_reset)
-	_confirm_container.add_child(_confirm_no)
+	_return_to_base_button = _make_button("Return to Base", Color(0.35, 0.5, 0.7))
+	_return_to_base_button.pressed.connect(_on_return_to_base_pressed)
+	_btn_row.add_child(_return_to_base_button)
 
 
 func show_defeat() -> void:
@@ -124,7 +98,6 @@ func show_defeat() -> void:
 	_stats_label.visible = true
 	_btn_row.visible = true
 	_update_stats()
-	_confirm_container.visible = false
 	visible = true
 
 
@@ -135,24 +108,12 @@ func show_victory() -> void:
 	_stats_label.visible = true
 	_btn_row.visible = true
 	_update_stats()
-	_confirm_container.visible = false
 	visible = true
 
 
 func hide_screen() -> void:
 	visible = false
-	_confirm_container.visible = false
 	_btn_row.visible = true
-
-
-## Show only the reset-progression confirmation (e.g. from HUD button).
-func show_reset_progression_confirm() -> void:
-	_title_label.text = "Reset progression?"
-	_message_label.text = "Wipe all unlocks and progress?"
-	_stats_label.visible = false
-	_btn_row.visible = false
-	_confirm_container.visible = true
-	visible = true
 
 
 func _update_stats() -> void:
@@ -179,33 +140,17 @@ func _on_retry_pressed() -> void:
 	retry_requested.emit()
 
 
-func _on_reset_pressed() -> void:
-	_confirm_container.visible = true
-
-
-func _on_confirm_reset() -> void:
-	_confirm_container.visible = false
-	_btn_row.visible = true
-	_stats_label.visible = true
-	SaveManager.reset_to_default()
-	EventBus.game_reset.emit()
-	_update_stats()
-	reset_requested.emit()
-
-
-func _on_cancel_reset() -> void:
-	_confirm_container.visible = false
-	_btn_row.visible = true
-	_stats_label.visible = true
-	visible = false
+func _on_return_to_base_pressed() -> void:
+	hide_screen()
+	get_tree().change_scene_to_file("res://scenes/base.tscn")
 
 
 # -- EventBus handlers --------------------------------------------------------
 
 func _on_run_ended(success: bool) -> void:
 	if success:
-		# Victory splash kept for later; skip showing for now
-		pass
+		if not GameManager.auto_restart_on_complete:
+			show_victory()
 	else:
 		show_defeat()
 

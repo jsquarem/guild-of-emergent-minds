@@ -9,6 +9,10 @@ var run_count: int = 0
 ## When true, completing a run automatically restarts the map.
 var auto_restart_on_complete: bool = true
 
+## Set by Map when starting a run; used on completion to mark progress and grant rewards.
+var current_dungeon_id: String = ""
+var current_dungeon_index: int = -1
+
 const SPEED_OPTIONS: Array[float] = [1.0, 2.0, 3.0, 4.0, 5.0]
 var speed_index: int = 0
 
@@ -50,6 +54,7 @@ func complete_run() -> void:
 	if current_state != GameState.RUNNING:
 		return
 	current_state = GameState.COMPLETED
+	_apply_dungeon_completion()
 	EventBus.run_ended.emit(true)
 	EventBus.dungeon_completed.emit()
 
@@ -70,6 +75,29 @@ func _on_game_reset() -> void:
 	var data := SaveManager.load_data()
 	run_count = data.get("run_count", 0)
 	current_state = GameState.IDLE
+	current_dungeon_id = ""
+	current_dungeon_index = -1
+
+
+func _apply_dungeon_completion() -> void:
+	if current_dungeon_id.is_empty():
+		return
+	var data: Dictionary = SaveManager.load_data()
+	var completed_ids: Array = data.get("completed_dungeon_ids", [])
+	if current_dungeon_id not in completed_ids:
+		completed_ids.append(current_dungeon_id)
+	var gold: int = data.get("gold", 0)
+	var reputation: int = data.get("reputation", 0)
+
+	var rewards: Dictionary = DungeonRegistry.get_rewards_for_index(current_dungeon_index)
+	gold += rewards.get("gold", 0)
+	reputation += rewards.get("reputation", 0)
+
+	SaveManager.save_data({
+		"completed_dungeon_ids": completed_ids,
+		"gold": gold,
+		"reputation": reputation,
+	})
 
 
 func _persist_run_count() -> void:

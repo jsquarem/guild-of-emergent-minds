@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.6", "GL Compatibility")
 EventBus="*res://scripts/autoloads/event_bus.gd"
 SaveManager="*res://scripts/autoloads/save_manager.gd"
 GameManager="*res://scripts/autoloads/game_manager.gd"
+DungeonRegistry="*res://scripts/autoloads/dungeon_registry.gd"
 UnlockManager="*res://scripts/autoloads/unlock_manager.gd"
 HazardTelegraphRegistry="*res://scripts/autoloads/hazard_telegraph_registry.gd"
 

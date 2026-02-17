@@ -38,14 +38,14 @@
 
 | Step | Task |
 |------|------|
-| **5.1** | Base scene: “select quest” → “start run”; after run, defeat screen then base (or win → base) |
-| **5.2** | Quest list (data-driven: dungeon id, difficulty, rewards); unlock by completion/reputation |
+| **5.1** | Base scene: "select dungeon" opens the **map scene**; from the map, player selects from **open dungeons** → "start run"; after run, defeat screen then base (or win → base). |
+| **5.2** | **Map scene:** dungeons are **connected by a path**; the **next dungeon opens after the previous one was completed**. Data-driven: dungeon id, difficulty, rewards; unlock by completion (and optionally reputation). |
 | **5.3** | Meta resources (e.g. reputation, gold); persist and show on base UI |
 | **5.4** | One hero training upgrade path (e.g. behavior capacity, reaction speed); spend resources at base |
 | **5.5** | (Optional) Idle: passive income or training over time at base |
 | **5.6** | (Post-MVP) Gear hook: drops + base shop; wipe penalty |
 
-**Deliverable:** Base as hub; choose quest → dungeon → return; earn and spend on one upgrade path.
+**Deliverable:** Base as hub; choose dungeon (via map) → run → return; earn and spend on one upgrade path.
 
 ---
 

@@ -69,9 +69,15 @@ func get_preferred_range_distance() -> float:
 
 
 func get_hazard_reaction_delay() -> float:
+	var base_delay: float = 0.35
 	if role:
-		return role.hazard_reaction_delay
-	return 0.35
+		base_delay = role.hazard_reaction_delay
+	var data: Dictionary = SaveManager.load_data()
+	var level: int = data.get("training_level", 0)
+	# Each level reduces reaction delay by 10%; minimum 0.1s
+	var multiplier: float = 1.0 - level * 0.1
+	multiplier = maxf(multiplier, 0.25)
+	return base_delay * multiplier
 
 
 func get_nav_agent() -> NavigationAgent2D:

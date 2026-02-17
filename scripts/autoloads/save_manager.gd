@@ -22,6 +22,10 @@ func load_data() -> Dictionary:
 func reset_to_default() -> void:
 	_cache = {
 		"run_count": 0,
+		"completed_dungeon_ids": [],
+		"gold": 0,
+		"reputation": 0,
+		"training_level": 0,
 		"unlock_data": {
 			"unlocked_behaviors": {},
 			"death_counts": {},
