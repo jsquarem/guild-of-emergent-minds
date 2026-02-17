@@ -1,0 +1,117 @@
+---
+description: Guild of Emergent Minds – Godot game rules and design pillars
+alwaysApply: true
+---
+
+# Guild of Emergent Minds – Project Rules
+
+## Project Identity
+
+- **Game:** AI-driven dungeon guild game. Heroes dungeon-crawl autonomously; the player can take control of any character at any time. Full autoplay is viable.
+- **Core differentiator:** Behavior is progression. Meta progression improves AI behavior and intelligence; base building supports long-term incremental growth.
+- **Emotional north star:** Watching trained heroes intelligently clear content; automation that feels earned; "They learned that because I taught them."
+
+## Design Pillars (from design-summary)
+
+### 1. Autonomous Dungeon Crawling
+
+- Heroes have defined roles (Tank, Enchanter, DPS, etc.) and operate via behavior trees / state machines. They improve over time and learn encounter mechanics.
+- Player can let heroes autoplay, intervene at any time, discover mechanics manually, and teach the AI through direct gameplay.
+
+### 2. AI Learning & Behavioral Unlocks
+
+- Behavior is progression. Examples: dodge fire once → unlock "Avoid Fire" behavior; repeated wipes → AI adapts; manual discovery → permanent bot learning.
+- Meta progression may include: expanding behavior tree capacity, unlocking new conditional logic nodes, improving reaction speed, deepening role specialization. Intelligence is a resource.
+
+### 3. Boss Design
+
+- Bosses use real mechanics, environmental triggers, clear telegraphs, and punishing patterns (e.g. standing in fire, line attacks, target swaps, phase transitions).
+- Early wipes are part of progression; late-game AI should feel "trained."
+
+### 4. Base / Guild Layer
+
+- Home base is incremental, idle-supporting, progression-focused. Systems: guild management, quest selection, reputation, resource production, hero training upgrades. Everything outside the dungeon = strategic layer.
+
+## System Architecture Focus
+
+- Behavior trees, role systems, state machines, unlockable AI logic, mechanic recognition, adaptation memory.
+- Prefer systems-first development; placeholder shapes initially, AI spritesheets later.
+- Prototype priorities: basic unit, basic behavior tree, simple dungeon room, fire-on-ground mechanic, unlock "avoid fire" behavior.
+
+---
+
+## Core Development Guidelines (Godot 4.6)
+
+- Use strict typing in GDScript for better error detection and IDE support.
+- Implement `_ready()` and other lifecycle functions with explicit `super()` calls.
+- Use `@onready` annotations instead of direct node references in `_ready()`.
+- Prefer composition over inheritance where possible.
+- Use signals for loose coupling between nodes.
+- Follow Godot's node naming conventions (PascalCase for nodes, snake_case for methods).
+
+## Code Style
+
+- Use type hints for all variables and function parameters.
+- Document complex functions with docstrings.
+- Keep methods focused and under 30 lines when possible.
+- Use meaningful variable and function names.
+- Group related properties and methods together.
+
+## Naming Conventions
+
+- **Files:** snake_case (e.g. `player_character.gd`, `main_menu.tscn`).
+- **Classes:** PascalCase with `class_name` (e.g. `PlayerCharacter`).
+- **Variables:** snake_case (e.g. `health_points`).
+- **Constants:** ALL_CAPS_SNAKE_CASE (e.g. `MAX_HEALTH`).
+- **Functions:** snake_case (e.g. `move_player()`).
+- **Enums:** PascalCase for type, ALL_CAPS_SNAKE_CASE for values.
+- **Nodes:** PascalCase in scene tree (e.g. `PlayerCharacter`, `MainCamera`).
+- **Signals:** snake_case, past tense (e.g. `health_depleted`, `enemy_defeated`).
+
+## Scene Organization
+
+- Keep scene tree depth minimal for better performance.
+- Use scene inheritance for reusable components.
+- Implement proper scene cleanup on `queue_free()`.
+- Use SubViewport nodes carefully due to performance impact.
+- Prefer step-by-step instructions to create Godot scene(s) instead of providing raw scene source code.
+
+## Signal Best Practices
+
+- Use clear, contextual signal names (e.g. `player_health_changed`).
+- Use typed signals where helpful (e.g. `signal item_collected(item_name: String)`).
+- Connect signals in code for dynamic nodes, in the editor for static relationships.
+- Reserve signals for important events, not frequent updates.
+- Pass only necessary data; avoid passing entire node references when possible.
+- Use an autoload "EventBus" singleton for global signals that need to reach distant nodes.
+- Minimize signal bubbling through multiple parent nodes.
+- Always disconnect signals when nodes are freed to prevent memory leaks.
+- Document signals with comments for purpose and parameters.
+
+## Resource Management
+
+- Implement proper resource cleanup in `_exit_tree()`.
+- Use `preload()` for essential resources, `load()` for optional ones.
+- Consider PackedByteArray storage impact on compatibility.
+- Implement resource unloading for unused assets.
+
+## Performance
+
+- Use node groups judiciously; prefer direct node references for frequent access to specific nodes.
+- Use object pooling for frequently spawned objects.
+- Use physics layers to optimize collision detection.
+- Prefer packed arrays (e.g. `PackedVector2Array`) over regular arrays.
+
+## Error Handling
+
+- Implement graceful fallbacks for missing resources.
+- Use `assert()` for development-time checks.
+- Log errors appropriately in production builds.
+- Handle network errors gracefully in multiplayer.
+
+## TileMap Implementation
+
+- TileMap node is deprecated; use multiple TileMapLayer nodes instead.
+- Convert existing TileMaps via the TileMap bottom panel toolbox option "Extract TileMap layers."
+- Access layers through TileMapLayer nodes; use `TileMapLayer.get_navigation_map()` for navigation.
+- Store layer-specific properties on individual TileMapLayer nodes.
