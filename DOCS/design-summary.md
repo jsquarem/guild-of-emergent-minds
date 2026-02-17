@@ -32,7 +32,7 @@
 
 #### Heroes
 
-- Have defined roles (Tank, Enchanter, DPS, etc.)  
+- Have defined roles (Tank, DPS, Healer, etc.)  
 - Operate via behavior trees / state machines  
 - Improve over time  
 - Learn encounter mechanics  

@@ -1,16 +1,16 @@
 # Next Steps Plan
 
-**Status:** Phase 1 and Phase 2 are implemented. MVP slice is playable: one AI hero, fire hazard, goal, behavior unlock (avoid fire after 3 deaths), single save, speed 1x–5x, HUD.
+**Status:** Phase 1–2 done. Phase 3 implemented: roles (Tank/DPS/Healer; only Tank+DPS spawned for now), state machine (Idle/Moving/Attacking), combat, 2 heroes, simple enemies (patrol/aggro), hybrid dungeon doc.
 
 ---
 
-## Immediate next: Phase 3 — Roles, state machines, combat
+## Immediate next: Phase 3 — Roles, state machines, combat (implemented)
 
 **Goal:** 2–3 heroes with distinct roles, simple enemy AI, state-driven behavior. Target run length 5–10 minutes.
 
 | Step | Task | Notes |
 |------|------|--------|
-| **3.1** | Role system | Define Tank, DPS, Enchanter as data (Resource or enum): base stats, preferred range, 1–2 abilities each. One unit type per role. |
+| **3.1** | Role system | Define Tank, DPS, Healer as data (Resource or enum): base stats, preferred range, 1–2 abilities each. One unit type per role. |
 | **3.2** | Combat model | Real-time auto-battle; AI picks targets and abilities by role. No player control (post-MVP). |
 | **3.3** | State machine (per unit) | Wrap BT in states: Idle, Moving, Attacking, UsingAbility, Fleeing. Clear transitions for debugging and future “reaction speed.” |
 | **3.4** | Simple encounters | 2–3 enemy types: patrol or aggro on sight, basic attack only. Heroes (AI) clear them. |

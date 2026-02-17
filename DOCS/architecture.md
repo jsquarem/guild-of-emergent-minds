@@ -22,7 +22,7 @@
 
 ## Role System (Phase 3+)
 
-- Roles defined as data (Resource or enum): Tank, DPS, Enchanter.
+- Roles defined as data (Resource or enum): Tank, DPS, Healer.
 - Each role has base stats, preferred range, and ability set.
 - State machine (Idle, Moving, Attacking, UsingAbility, Fleeing) wraps the BT.
 
@@ -83,7 +83,11 @@ Main (Node2D)
 ## Dungeon Structure (Phase 3+)
 
 - **Hybrid:** hand-crafted rooms as prefabs/templates, procedural arrangement.
-- Room format and procedural rules TBD; document here when locked.
+- **Room format:** Each room is a scene or script (e.g. `DungeonRoom`) that defines:
+  - Size (`room_size: Vector2`), walls, floor, hazards, goal zone, spawn points for heroes and enemies.
+  - Optional: navigation regions, door nodes (for future multi-room).
+- **Procedural arrangement:** Pick 2–4 room templates; instantiate and position them; connect with "door" positions (future: spawn doors/transitions). For Phase 3 MVP, a single hand-crafted room is used; multi-room layout is deferred.
+- **Encounters:** Enemies are placed in the room at design time or via spawn points; hero party (2–3) spawns at a designated entry.
 
 ## View Toggles and Background Progression (TBD)
 

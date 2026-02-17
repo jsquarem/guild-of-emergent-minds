@@ -1,78 +1,47 @@
 class_name HUD
 extends Control
-## Heads-up display: hero HP, speed indicator, run count, unlock notifications.
+## Heads-up display: party panel (heroes + stats), enemies window (stats), speed, notifications.
+## Layout is in scenes/ui/hud.tscn so you can edit positions and labels in the Godot editor.
 
-var hp_label: Label
-var speed_label: Label
-var run_label: Label
-var death_label: Label
-var notification_label: Label
+@onready var party_panel: PanelContainer = $PartyPanel
+@onready var party_list: VBoxContainer = $PartyPanel/PartyMargin/PartyVBox/PartyList
+@onready var run_label: Label = $PartyPanel/PartyMargin/PartyVBox/RunRow/RunLabel
+@onready var death_label: Label = $PartyPanel/PartyMargin/PartyVBox/RunRow/DeathLabel
+@onready var enemies_panel: PanelContainer = $EnemiesPanel
+@onready var enemies_list: VBoxContainer = $EnemiesPanel/EnemiesMargin/EnemiesVBox/EnemiesList
+@onready var speed_label: Label = $SpeedLabel
+@onready var notification_label: Label = $NotificationLabel
 
 var _notification_timer: float = 0.0
+const ROW_SPACING: int = 4
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-	_build_ui()
+	_apply_panel_styles()
 	_connect_signals()
 
 
 func _process(delta: float) -> void:
-	_update_hero_hp()
+	_update_party_panel()
+	_update_enemies_panel()
 	_update_death_counts()
 	var real_delta := delta / maxf(Engine.time_scale, 0.001)
 	_tick_notification(real_delta)
 
 
-# -- UI construction ----------------------------------------------------------
-
-func _build_ui() -> void:
-	# Top-left panel
-	var top_left := VBoxContainer.new()
-	top_left.position = Vector2(16, 16)
-	add_child(top_left)
-
-	hp_label = _make_label("HP: --/--", 18)
-	top_left.add_child(hp_label)
-
-	run_label = _make_label("Run: 0", 14)
-	top_left.add_child(run_label)
-
-	death_label = _make_label("Fire deaths: 0", 14)
-	top_left.add_child(death_label)
-
-	# Top-right: speed
-	speed_label = _make_label("Speed: 1x", 18)
-	speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	speed_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	speed_label.offset_left = -140.0
-	speed_label.offset_top = 16.0
-	speed_label.offset_right = -16.0
-	add_child(speed_label)
-
-	# Center-top: notifications
-	notification_label = _make_label("", 24)
-	notification_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	notification_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	notification_label.offset_left = -220.0
-	notification_label.offset_top = 80.0
-	notification_label.offset_right = 220.0
-	add_child(notification_label)
-
-	# Bottom-center: controls hint
-	var hint := _make_label("[1-5] Speed  |  [+/-] or LB/RB  |  [R] Restart", 12)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	hint.offset_top = -32.0
-	add_child(hint)
+func _apply_panel_styles() -> void:
+	party_panel.add_theme_stylebox_override("panel", _panel_style())
+	enemies_panel.add_theme_stylebox_override("panel", _panel_style())
 
 
-func _make_label(text: String, size: int) -> Label:
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", size)
-	return lbl
+func _panel_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.2, 0.92)
+	style.border_color = Color(0.35, 0.35, 0.45)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	return style
 
 
 # -- Signal handlers ----------------------------------------------------------
@@ -109,22 +78,93 @@ func _on_run_ended(success: bool) -> void:
 
 # -- Live updates -------------------------------------------------------------
 
-func _update_hero_hp() -> void:
+func _update_party_panel() -> void:
+	_clear_children(party_list)
 	var heroes := get_tree().get_nodes_in_group("heroes")
-	if heroes.size() > 0:
-		var hero: Hero = heroes[0]
-		hp_label.text = "HP: %d / %d" % [ceili(hero.hp), int(hero.max_hp)]
-	else:
-		hp_label.text = "HP: --/--"
+	for node in heroes:
+		var hero := node as Hero
+		if not hero:
+			continue
+		party_list.add_child(_make_hero_block(hero))
+
+
+func _make_hero_block(hero: Hero) -> Control:
+	var role_name: String = _hero_role_name(hero)
+	var color: Color = _hero_role_color(hero)
+	var block := VBoxContainer.new()
+	block.add_theme_constant_override("separation", 2)
+	var header := _make_label("%s" % role_name, 15)
+	header.add_theme_color_override("font_color", color)
+	block.add_child(header)
+	block.add_child(_make_label("  HP: %d / %d" % [ceili(hero.hp), int(hero.max_hp)], 13))
+	block.add_child(_make_label("  Atk: %.0f  Range: %.0f" % [hero.attack_power, hero.attack_range], 12))
+	if hero.role and hero.role.armor > 0:
+		block.add_child(_make_label("  Armor: %.0f" % hero.role.armor, 12))
+	return block
+
+
+func _update_enemies_panel() -> void:
+	_clear_children(enemies_list)
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for node in enemies:
+		var enemy := node as Enemy
+		if not enemy:
+			continue
+		enemies_list.add_child(_make_enemy_block(enemy))
+	if enemies_list.get_child_count() == 0:
+		enemies_list.add_child(_make_label("(none)", 13))
+
+
+func _make_enemy_block(enemy: Enemy) -> Control:
+	var block := VBoxContainer.new()
+	block.add_theme_constant_override("separation", 2)
+	var header := _make_label("%s" % enemy.name, 14)
+	header.add_theme_color_override("font_color", Color(0.95, 0.5, 0.45))
+	block.add_child(header)
+	block.add_child(_make_label("  HP: %d / %d" % [ceili(enemy.hp), int(enemy.max_hp)], 12))
+	block.add_child(_make_label("  Atk: %.0f  Range: %.0f" % [enemy.attack_damage, enemy.attack_range], 12))
+	block.add_child(_make_label("  Aggro: %.0f  Spd: %.0f" % [enemy.aggro_range, enemy.move_speed], 12))
+	return block
+
+
+func _clear_children(parent: Control) -> void:
+	for c in parent.get_children():
+		c.queue_free()
+
+
+func _make_label(text: String, size: int) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", size)
+	return lbl
+
+
+func _hero_role_name(hero: Hero) -> String:
+	if not hero.role:
+		return "Hero"
+	return hero.role.display_name
+
+
+func _hero_role_color(hero: Hero) -> Color:
+	if not hero.role:
+		return Color(0.6, 0.7, 1.0)
+	match hero.role.role_type:
+		HeroRole.RoleType.TANK:
+			return Color(0.85, 0.65, 0.35)
+		HeroRole.RoleType.DPS:
+			return Color(1.0, 0.4, 0.35)
+		HeroRole.RoleType.HEALER:
+			return Color(0.4, 0.75, 1.0)
+	return Color(0.8, 0.8, 0.9)
 
 
 func _update_death_counts() -> void:
 	var fire_deaths: int = UnlockManager.get_death_count("fire")
 	var unlocked: bool = UnlockManager.is_unlocked("avoid_fire")
 	if unlocked:
-		death_label.text = "Fire deaths: %d  [AVOID FIRE unlocked]" % fire_deaths
+		death_label.text = "  |  Fire deaths: %d  [AVOID FIRE unlocked]" % fire_deaths
 	else:
-		death_label.text = "Fire deaths: %d / %d to unlock" % [fire_deaths, 3]
+		death_label.text = "  |  Fire deaths: %d / %d to unlock" % [fire_deaths, 3]
 
 
 func _show_notification(text: String, color: Color, duration: float) -> void:
