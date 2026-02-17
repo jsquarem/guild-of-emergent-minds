@@ -52,6 +52,34 @@
 - 1x, 2x, 3x, 4x, 5x via `Engine.time_scale`.
 - HUD and notification timers use real-time delta (`delta / Engine.time_scale`).
 
+## Boss System (Phase 4+)
+
+- `Boss` (CharacterBody2D) in `scripts/units/boss.gd`. In group `"enemies"` and `"bosses"`.
+- **Phases:** `NORMAL` → `ENRAGED` at configurable HP threshold (default 50%). Enraged phase reduces ability cooldowns and unlocks additional mechanics.
+- **State loop:** `IDLE` → `TELEGRAPH` → `EXECUTE` → `IDLE`. Melee attacks happen during IDLE/MELEE when no ability is charging.
+- **Telegraph system:** Each ability has a configurable telegraph duration with pulsing visual indicators. `EventBus.mechanic_telegraph` emits mechanic ID + data dict (position, direction, extent, duration, target) so AI/UI can react.
+- **Mechanics:**
+  - `fire` — Spawns a temporary `FireHazard` at target position; auto-removed after duration.
+  - `line_attack` — Damages all heroes in a line segment (configurable width/length).
+  - `target_swap` — Marks a non-aggro hero, deals high damage after telegraph, switches aggro.
+- `EventBus.mechanic_triggered` emits when ability executes.
+- Boss-spawned fire hazards use cause `"fire"`; line and target_swap use `"line_attack"` and `"target_swap"` respectively, feeding into UnlockManager death tracking.
+
+## Run End Screen (Phase 4+)
+
+- `RunEndScreen` (Control) in `scripts/ui/run_end_screen.gd`. Built in code, added to UI CanvasLayer by Main.
+- Shows "DEFEAT" or "VICTORY" overlay with run stats (deaths by cause, unlocks).
+- **Retry** button: emits `retry_requested`; Main restarts room.
+- **Reset Progress** button: confirmation prompt, then calls `SaveManager.reset_to_default()` + `EventBus.game_reset.emit()`.
+- No auto-restart on fail; player must press Retry (or R key). Manual restart still available via R key / gamepad Start.
+
+## Full Game Reset
+
+- `SaveManager.reset_to_default()` replaces cache with default save shape and writes to disk.
+- `EventBus.game_reset` signal notifies all autoloads to reload from SaveManager.
+- `UnlockManager` clears `unlocked_behaviors` and `death_counts`.
+- `GameManager` resets `run_count` and `current_state`.
+
 ## Scene Flow (MVP)
 
 ```
@@ -60,17 +88,20 @@ Main (Node2D)
 ├── DungeonRoom (created in code)
 │   ├── Floor (ColorRect)
 │   ├── Walls (StaticBody2D)
-│   ├── FireHazard (Area2D)
+│   ├── Boss (CharacterBody2D) — if is_boss_room
+│   ├── Enemy × N (CharacterBody2D) — if not is_boss_room
+│   ├── FireHazard (Area2D) — spawned by Boss or room
 │   ├── GoalZone (Area2D)
-│   └── Hero (CharacterBody2D)
+│   └── Hero × 3 (CharacterBody2D)
 │       ├── CollisionShape2D
 │       └── HeroBrain (Node)
 └── UI (CanvasLayer)
-    └── HUD (Control)
+    ├── HUD (Control)
+    └── RunEndScreen (Control)
 ```
 
-- On run end (death or goal reached): 2.5s real-time pause, then auto-restart room.
-- Manual restart: R key / gamepad Start.
+- On run end: defeat/victory screen shown; player presses Retry to restart.
+- Manual restart: R key / gamepad Start (bypasses screen).
 - UnlockManager persists learning across restarts.
 
 ## Autoload Order (matters for startup dependencies)
