@@ -25,6 +25,7 @@ func reset_to_default() -> void:
 		"unlock_data": {
 			"unlocked_behaviors": {},
 			"death_counts": {},
+			"mechanic_hit_counts": {},
 		}
 	}
 	_write_to_disk(_cache)

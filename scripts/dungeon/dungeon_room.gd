@@ -7,6 +7,14 @@ extends Node2D
 @export var room_size: Vector2 = Vector2(480, 320)
 @export var is_boss_room: bool = false
 @export var room_index: int = 0
+## When true, room only builds walls and spawns enemies/boss; does not spawn heroes. Used in one-world dungeon flow.
+@export var region_only: bool = false
+## When true, leave a gap (door) in the left wall for transition from previous room.
+@export var door_left: bool = false
+## When true, leave a gap (door) in the right wall for transition to next room.
+@export var door_right: bool = false
+
+const DOOR_HALF_HEIGHT: float = 40.0
 
 ## Optional: carry hero HP from previous room. Array of {role: HeroRole, hp: float}
 var hero_states: Array[Dictionary] = []
@@ -21,8 +29,11 @@ var _total_enemies: int = 0
 
 func _ready() -> void:
 	_create_walls()
-	if is_boss_room:
-		_create_goal_zone()
+	if region_only:
+		if not is_boss_room:
+			_spawn_enemies()
+		# Boss room: boss spawned later via spawn_boss_if_deferred()
+		return
 	_spawn_heroes()
 	if is_boss_room:
 		_spawn_boss()
@@ -42,8 +53,16 @@ func _create_walls() -> void:
 
 	_add_wall_segment(wall_body, Vector2(0, -half.y), Vector2(room_size.x + t * 2, t))
 	_add_wall_segment(wall_body, Vector2(0, half.y), Vector2(room_size.x + t * 2, t))
-	_add_wall_segment(wall_body, Vector2(-half.x, 0), Vector2(t, room_size.y))
-	_add_wall_segment(wall_body, Vector2(half.x, 0), Vector2(t, room_size.y))
+
+	if door_left:
+		_add_door_wall_segments(wall_body, -half.x, t, half.y)
+	else:
+		_add_wall_segment(wall_body, Vector2(-half.x, 0), Vector2(t, room_size.y))
+
+	if door_right:
+		_add_door_wall_segments(wall_body, half.x, t, half.y)
+	else:
+		_add_wall_segment(wall_body, Vector2(half.x, 0), Vector2(t, room_size.y))
 
 
 func _add_wall_segment(parent: StaticBody2D, pos: Vector2, size: Vector2) -> void:
@@ -53,6 +72,14 @@ func _add_wall_segment(parent: StaticBody2D, pos: Vector2, size: Vector2) -> voi
 	col.shape = rect
 	col.position = pos
 	parent.add_child(col)
+
+
+func _add_door_wall_segments(parent: StaticBody2D, wall_center_x: float, wall_thickness: float, half_y: float) -> void:
+	var segment_height: float = half_y - DOOR_HALF_HEIGHT
+	var top_center_y: float = (-half_y - DOOR_HALF_HEIGHT) / 2.0
+	var bottom_center_y: float = (DOOR_HALF_HEIGHT + half_y) / 2.0
+	_add_wall_segment(parent, Vector2(wall_center_x, top_center_y), Vector2(wall_thickness, segment_height))
+	_add_wall_segment(parent, Vector2(wall_center_x, bottom_center_y), Vector2(wall_thickness, segment_height))
 
 
 func _create_goal_zone() -> void:
@@ -96,7 +123,8 @@ func _spawn_heroes() -> void:
 		HeroRole.get_default_dps(),
 		HeroRole.get_default_healer()
 	]
-	var x_offsets: Array[float] = [-50.0, 0.0, 50.0]
+	# Tank at front (rightmost toward enemies), then DPS, then Healer at back
+	var x_offsets: Array[float] = [50.0, 0.0, -50.0]
 	for i in range(roles.size()):
 		var h := Hero.new()
 		h.name = "Hero_%d" % i
@@ -187,6 +215,22 @@ func get_hero_states() -> Array[Dictionary]:
 	return states
 
 
+## World-space spawn position (left side of room). Use when placing heroes in a shared world.
+func get_world_spawn_position() -> Vector2:
+	return global_position + Vector2(-room_size.x / 2.0 + 60.0, 0.0)
+
+
+## World-space goal position (center-right of room). Use for hero goal_position in world flow.
+func get_world_goal_position() -> Vector2:
+	return global_position + Vector2(room_size.x / 2.0 - 40.0, 0.0)
+
+
+## Spawn boss when this room is a boss region and boss was deferred (e.g. one-world flow).
+func spawn_boss_if_deferred() -> void:
+	if is_boss_room and boss_instance == null:
+		_spawn_boss()
+
+
 # -- Signals ------------------------------------------------------------------
 
 func _on_goal_entered(body: Node2D) -> void:
@@ -223,8 +267,16 @@ func _draw() -> void:
 	var wall_color := Color(0.4, 0.25, 0.25) if is_boss_room else Color(0.3, 0.3, 0.35)
 	draw_rect(Rect2(-half.x - t, -half.y - t / 2.0, room_size.x + t * 2.0, t), wall_color)
 	draw_rect(Rect2(-half.x - t, half.y - t / 2.0, room_size.x + t * 2.0, t), wall_color)
-	draw_rect(Rect2(-half.x - t / 2.0, -half.y, t, room_size.y), wall_color)
-	draw_rect(Rect2(half.x - t / 2.0, -half.y, t, room_size.y), wall_color)
+	if door_left:
+		draw_rect(Rect2(-half.x - t / 2.0, -half.y, t, half.y - DOOR_HALF_HEIGHT), wall_color)
+		draw_rect(Rect2(-half.x - t / 2.0, DOOR_HALF_HEIGHT, t, half.y - DOOR_HALF_HEIGHT), wall_color)
+	else:
+		draw_rect(Rect2(-half.x - t / 2.0, -half.y, t, room_size.y), wall_color)
+	if door_right:
+		draw_rect(Rect2(half.x - t / 2.0, -half.y, t, half.y - DOOR_HALF_HEIGHT), wall_color)
+		draw_rect(Rect2(half.x - t / 2.0, DOOR_HALF_HEIGHT, t, half.y - DOOR_HALF_HEIGHT), wall_color)
+	else:
+		draw_rect(Rect2(half.x - t / 2.0, -half.y, t, room_size.y), wall_color)
 
 	# Goal zone glow (boss room only)
 	if goal_zone:

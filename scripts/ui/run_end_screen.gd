@@ -9,6 +9,7 @@ signal reset_requested()
 var _title_label: Label
 var _message_label: Label
 var _stats_label: Label
+var _btn_row: HBoxContainer
 var _retry_button: Button
 var _reset_button: Button
 var _confirm_container: HBoxContainer
@@ -81,18 +82,18 @@ func _build_ui() -> void:
 	vbox.add_child(spacer)
 
 	# Buttons row
-	var btn_row := HBoxContainer.new()
-	btn_row.add_theme_constant_override("separation", 16)
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_child(btn_row)
+	_btn_row = HBoxContainer.new()
+	_btn_row.add_theme_constant_override("separation", 16)
+	_btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(_btn_row)
 
 	_retry_button = _make_button("Retry", Color(0.2, 0.7, 0.3))
 	_retry_button.pressed.connect(_on_retry_pressed)
-	btn_row.add_child(_retry_button)
+	_btn_row.add_child(_retry_button)
 
 	_reset_button = _make_button("Reset Progress", Color(0.8, 0.3, 0.2))
 	_reset_button.pressed.connect(_on_reset_pressed)
-	btn_row.add_child(_reset_button)
+	_btn_row.add_child(_reset_button)
 
 	# Confirmation row (hidden by default)
 	_confirm_container = HBoxContainer.new()
@@ -120,6 +121,8 @@ func show_defeat() -> void:
 	_title_label.text = "DEFEAT"
 	_title_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.2))
 	_message_label.text = "Your party has been wiped."
+	_stats_label.visible = true
+	_btn_row.visible = true
 	_update_stats()
 	_confirm_container.visible = false
 	visible = true
@@ -129,6 +132,8 @@ func show_victory() -> void:
 	_title_label.text = "VICTORY"
 	_title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.35))
 	_message_label.text = "All enemies defeated!"
+	_stats_label.visible = true
+	_btn_row.visible = true
 	_update_stats()
 	_confirm_container.visible = false
 	visible = true
@@ -137,6 +142,17 @@ func show_victory() -> void:
 func hide_screen() -> void:
 	visible = false
 	_confirm_container.visible = false
+	_btn_row.visible = true
+
+
+## Show only the reset-progression confirmation (e.g. from HUD button).
+func show_reset_progression_confirm() -> void:
+	_title_label.text = "Reset progression?"
+	_message_label.text = "Wipe all unlocks and progress?"
+	_stats_label.visible = false
+	_btn_row.visible = false
+	_confirm_container.visible = true
+	visible = true
 
 
 func _update_stats() -> void:
@@ -169,6 +185,8 @@ func _on_reset_pressed() -> void:
 
 func _on_confirm_reset() -> void:
 	_confirm_container.visible = false
+	_btn_row.visible = true
+	_stats_label.visible = true
 	SaveManager.reset_to_default()
 	EventBus.game_reset.emit()
 	_update_stats()
@@ -177,13 +195,17 @@ func _on_confirm_reset() -> void:
 
 func _on_cancel_reset() -> void:
 	_confirm_container.visible = false
+	_btn_row.visible = true
+	_stats_label.visible = true
+	visible = false
 
 
 # -- EventBus handlers --------------------------------------------------------
 
 func _on_run_ended(success: bool) -> void:
 	if success:
-		show_victory()
+		# Victory splash kept for later; skip showing for now
+		pass
 	else:
 		show_defeat()
 

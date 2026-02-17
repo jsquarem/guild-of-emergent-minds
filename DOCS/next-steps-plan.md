@@ -55,7 +55,7 @@
 - Full gear system + consumables (one type + AI use rule first)
 - Art pass (replace placeholders)
 - Balancing: wipe rates, unlock pacing, 5–10 min runs, medium difficulty
-- Smarter enemy AI (abilities, tactics)
+- Smarter enemy AI (abilities, tactics); **aggro/threat tables** (threat per hero per enemy, taunt, target selection by highest threat)
 - UI polish, accessibility, sound expansion
 
 ---

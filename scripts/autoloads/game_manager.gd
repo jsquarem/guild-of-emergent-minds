@@ -6,6 +6,8 @@ enum GameState { IDLE, RUNNING, COMPLETED, FAILED }
 var current_state: GameState = GameState.IDLE
 var game_speed: float = 1.0
 var run_count: int = 0
+## When true, completing a run automatically restarts the map.
+var auto_restart_on_complete: bool = true
 
 const SPEED_OPTIONS: Array[float] = [1.0, 2.0, 3.0, 4.0, 5.0]
 var speed_index: int = 0
