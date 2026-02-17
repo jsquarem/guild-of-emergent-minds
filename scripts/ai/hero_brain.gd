@@ -1,9 +1,11 @@
 class_name HeroBrain
 extends Node
 ## Builds and ticks a behavior tree each physics frame to drive a Hero.
+## State machine (Idle, Moving, Attacking, UsingAbility, Fleeing) wraps BT for debugging.
 
 var hero: Hero
 var tree: BTNode
+var unit_state: UnitState
 
 const HAZARD_AVOIDANCE_RADIUS: float = 140.0
 const HAZARD_AVOIDANCE_STRENGTH: float = 3.0
@@ -12,6 +14,7 @@ const HAZARD_AVOIDANCE_STRENGTH: float = 3.0
 func _ready() -> void:
 	hero = get_parent() as Hero
 	assert(hero != null, "HeroBrain must be a child of a Hero node")
+	unit_state = UnitState.new()
 	_build_tree()
 
 
@@ -25,7 +28,13 @@ func _build_tree() -> void:
 	avoid_seq.add_child_node(BTAction.new(_move_with_avoidance))
 	root.add_child_node(avoid_seq)
 
-	# Branch 2: move directly to goal
+	# Branch 2: combat — attack enemy in range, else move toward nearest enemy
+	var combat_seq := BTSequence.new()
+	combat_seq.add_child_node(BTCondition.new(_has_nearby_enemy))
+	combat_seq.add_child_node(BTAction.new(_combat_tick))
+	root.add_child_node(combat_seq)
+
+	# Branch 3: move directly to goal
 	root.add_child_node(BTAction.new(_move_to_goal))
 
 	tree = root
@@ -34,6 +43,7 @@ func _build_tree() -> void:
 func _physics_process(delta: float) -> void:
 	if not hero.is_alive:
 		hero.velocity = Vector2.ZERO
+		unit_state.set_state(UnitState.State.IDLE)
 		return
 
 	var blackboard: Dictionary = {"delta": delta}
@@ -56,6 +66,43 @@ func _is_near_hazard() -> bool:
 		if dist < HAZARD_AVOIDANCE_RADIUS:
 			return true
 	return false
+
+
+func _has_nearby_enemy() -> bool:
+	return _get_nearest_enemy() != null
+
+
+func _get_nearest_enemy() -> Node2D:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var best: Node2D = null
+	var best_dist: float = 1e6
+	for node in enemies:
+		var e := node as Node2D
+		if not e or not e.has_method("take_damage"):
+			continue
+		if e.get("is_alive") == false:
+			continue
+		var d := hero.global_position.distance_to(e.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = e
+	return best
+
+
+func _combat_tick(_blackboard: Dictionary) -> BTNode.Status:
+	var target := _get_nearest_enemy()
+	if not target:
+		unit_state.set_state(UnitState.State.IDLE)
+		return BTNode.Status.FAILURE
+	var dist := hero.global_position.distance_to(target.global_position)
+	if dist <= hero.attack_range and hero.can_attack():
+		unit_state.set_state(UnitState.State.ATTACKING)
+		hero.velocity = Vector2.ZERO
+		hero.perform_attack(target)
+		return BTNode.Status.RUNNING
+	unit_state.set_state(UnitState.State.MOVING)
+	hero.velocity = (target.global_position - hero.global_position).normalized() * hero.move_speed
+	return BTNode.Status.RUNNING
 
 
 # -- Actions ------------------------------------------------------------------
@@ -82,6 +129,7 @@ func _move_with_avoidance(_blackboard: Dictionary) -> BTNode.Status:
 				perp = -perp
 			avoidance += (away * 0.3 + perp * 0.7).normalized() * strength
 
+	unit_state.set_state(UnitState.State.MOVING)
 	var final_dir := (goal_dir + avoidance * HAZARD_AVOIDANCE_STRENGTH).normalized()
 	hero.velocity = final_dir * hero.move_speed
 	return BTNode.Status.RUNNING
@@ -91,8 +139,10 @@ func _move_to_goal(_blackboard: Dictionary) -> BTNode.Status:
 	var to_goal := hero.goal_position - hero.global_position
 	if to_goal.length() < 8.0:
 		hero.velocity = Vector2.ZERO
+		unit_state.set_state(UnitState.State.IDLE)
 		return BTNode.Status.SUCCESS
 
+	unit_state.set_state(UnitState.State.MOVING)
 	hero.velocity = to_goal.normalized() * hero.move_speed
 	return BTNode.Status.RUNNING
 

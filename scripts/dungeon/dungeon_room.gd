@@ -5,15 +5,17 @@ extends Node2D
 
 @export var room_size: Vector2 = Vector2(480, 320)
 
-var hero_instance: Hero
+var hero_instances: Array[Hero] = []
 var goal_zone: Area2D
+var _hero_died_count: int = 0
 
 
 func _ready() -> void:
 	_create_walls()
 	_create_goal_zone()
 	_create_fire_hazard()
-	_spawn_hero()
+	_spawn_heroes()
+	_spawn_enemies()
 	GameManager.start_run()
 
 
@@ -76,26 +78,61 @@ func _create_fire_hazard() -> void:
 	fire.add_child(col)
 
 
-func _spawn_hero() -> void:
-	hero_instance = Hero.new()
-	hero_instance.name = "Hero"
-	hero_instance.position = Vector2(-room_size.x / 2.0 + 40.0, 0.0)
-	hero_instance.goal_position = goal_zone.position
-	add_child(hero_instance)
+func _spawn_heroes() -> void:
+	var roles: Array[HeroRole] = [
+		HeroRole.get_default_tank(),
+		HeroRole.get_default_dps(),
+		HeroRole.get_default_enchanter()
+	]
+	var x_offsets: Array[float] = [-50.0, 0.0, 50.0]
+	for i in range(roles.size()):
+		var h := Hero.new()
+		h.name = "Hero_%d" % i
+		h.position = Vector2(-room_size.x / 2.0 + 60.0 + x_offsets[i], 0.0)
+		h.goal_position = goal_zone.position
+		h.role = roles[i]
+		add_child(h)
 
-	# Collision shape
+		var col := CollisionShape2D.new()
+		var circle := CircleShape2D.new()
+		circle.radius = 8.0
+		col.shape = circle
+		h.add_child(col)
+
+		var brain := HeroBrain.new()
+		brain.name = "Brain"
+		h.add_child(brain)
+
+		h.died.connect(_on_hero_died)
+		hero_instances.append(h)
+
+
+func _spawn_enemies() -> void:
+	var e1 := Enemy.new()
+	e1.name = "Enemy1"
+	e1.position = Vector2(room_size.x / 4.0, -room_size.y / 4.0)
+	e1.max_hp = 25.0
+	e1.attack_damage = 8.0
+	e1.aggro_range = 140.0
+	e1.patrol_radius = 0.0
+	add_child(e1)
+	_add_enemy_collision(e1)
+
+	var e2 := Enemy.new()
+	e2.name = "Enemy2"
+	e2.position = Vector2(room_size.x / 4.0, room_size.y / 4.0)
+	e2.max_hp = 30.0
+	e2.patrol_radius = 40.0
+	add_child(e2)
+	_add_enemy_collision(e2)
+
+
+func _add_enemy_collision(enemy: Enemy) -> void:
 	var col := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = 8.0
+	circle.radius = 10.0
 	col.shape = circle
-	hero_instance.add_child(col)
-
-	# AI brain
-	var brain := HeroBrain.new()
-	brain.name = "Brain"
-	hero_instance.add_child(brain)
-
-	hero_instance.died.connect(_on_hero_died)
+	enemy.add_child(col)
 
 
 # -- Signals ------------------------------------------------------------------
@@ -106,7 +143,9 @@ func _on_goal_entered(body: Node2D) -> void:
 
 
 func _on_hero_died(_cause: String) -> void:
-	GameManager.fail_run()
+	_hero_died_count += 1
+	if _hero_died_count >= hero_instances.size():
+		GameManager.fail_run()
 
 
 # -- Drawing (walls + goal visual) -------------------------------------------
