@@ -121,12 +121,15 @@ alwaysApply: true
 
 - **Phases 1–4 complete.** Phase 5 (Base / Guild Layer) is next.
 - **Autoloads (load order):** EventBus → SaveManager → GameManager → UnlockManager.
-- **EventBus signals:** `hero_damaged`, `hero_died`, `hazard_entered`, `hazard_exited`, `behavior_unlocked`, `dungeon_completed`, `dungeon_failed`, `run_started`, `run_ended`, `speed_changed`, `mechanic_telegraph`, `mechanic_triggered`, `game_reset`.
+- **EventBus signals:** `hero_damaged`, `hero_died`, `hazard_entered`, `hazard_exited`, `behavior_unlocked`, `dungeon_completed`, `dungeon_failed`, `run_started`, `run_ended`, `speed_changed`, `mechanic_telegraph`, `mechanic_triggered`, `game_reset`, `room_cleared`.
 - **Key scripts:** `scripts/units/hero.gd`, `scripts/units/enemy.gd`, `scripts/units/boss.gd`, `scripts/ai/hero_brain.gd`, `scripts/dungeon/dungeon_room.gd`, `scripts/mechanics/fire_hazard.gd`, `scripts/ui/hud.gd`, `scripts/ui/run_end_screen.gd`, `scripts/main.gd`.
-- **Boss system:** Phases (Normal/Enraged), telegraph → execute state loop, three mechanics (fire, line_attack, target_swap). Boss is in groups `"enemies"` and `"bosses"`.
+- **Effects:** `scripts/effects/projectile.gd`, `scripts/effects/floating_number.gd`, `scripts/effects/heal_effect.gd`, `scripts/effects/fire_zone_effect.gd`.
+- **Hero AI:** Role-specific behavior trees: Tank (melee), DPS (ranged + projectiles), Healer (heal lowest ally, ranged fallback). See `DOCS/ai-system.md`.
+- **Boss system:** Phases (Normal/Enraged), telegraph → execute state loop, three mechanics (fire circular one-hit, line_attack, target_swap). Boss is in groups `"enemies"` and `"bosses"`.
+- **Dungeon flow:** Main creates mob room → boss room. Heroes persist HP across rooms via `DungeonRoom.get_hero_states()`.
+- **Visual effects:** Floating damage/heal numbers, projectiles (attack + heal), heal ring, fire zone burst.
 - **Run end:** `RunEndScreen` overlay with Retry and Reset Progress buttons. No auto-restart on fail; R key for manual restart.
 - **Full game reset:** `SaveManager.reset_to_default()` + `EventBus.game_reset` clears all unlocks, death counts, and run count.
-- **DungeonRoom:** `is_boss_room` flag (default true); spawns Boss or regular enemies; killing all enemies completes the run.
 
 ## TileMap Implementation
 
